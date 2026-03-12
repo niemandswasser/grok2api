@@ -3,12 +3,12 @@ services:
     container_name: grok2api
     image: ghcr.io/chenyme/grok2api:latest
     ports:
-      - "${HOST_PORT:-8000}:${SERVER_PORT:-8000}"
+      - "8001:8001"
     environment:
       TZ: Asia/Shanghai
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
-      SERVER_PORT: ${SERVER_PORT:-8000}
+      SERVER_PORT: "8001"
       SERVER_WORKERS: ${SERVER_WORKERS:-1}
       SERVER_STORAGE_TYPE: ${SERVER_STORAGE_TYPE:-local}
       SERVER_STORAGE_URL: ${SERVER_STORAGE_URL:-}
@@ -27,10 +27,22 @@ services:
       - -c
       - >
         granian --interface asgi --host "$${SERVER_HOST:-0.0.0.0}"
-        --port "$${SERVER_PORT:-8000}" --workers "$${SERVER_WORKERS:-1}" main:app
+        --port "$${SERVER_PORT:-8001}" --workers "$${SERVER_WORKERS:-1}" main:app
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+    restart: unless-stopped
+
+  grok-image-proxy:
+    container_name: grok-image-proxy
+    build: ./grok-image-proxy
+    ports:
+      - "8002:8002"
+    environment:
+      GROK2API_URL: "http://grok2api:8001"
+      PROXY_PORT: "8002"
+    depends_on:
+      - grok2api
     restart: unless-stopped
 
   # 如果出口 IP 不干净，可取消以下注释使用 Warp 作为落地代理
